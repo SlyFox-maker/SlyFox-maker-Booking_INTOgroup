@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная страница</title>
+</head>
+<body>
+    <h1>Добро пожаловать на главную страницу!</h1>
+
+    {% if username %}
+        <p>Привет, {{ username }}!</p>
+        <p><a href="{% url 'logout' %}">Выйти</a> </p>
+    {% else %}
+        <p>Привет<a href="{% url 'login' %}">Войдите</a> или <a href="{% url 'registration' %}">Зарегистрируйтесь </a> чтобы увидеть штуки</p>
+    {% endif %}
+</body>
+</html>
