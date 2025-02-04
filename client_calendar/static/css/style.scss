@@ -1,0 +1,235 @@
+@charset "UTF-8";
+@font-face {
+  font-family: "cygre";
+  src: url("/local/templates/intoGroup/assets/fonts/cygre_default/Cygre-Light.ttf");
+font-weight: normal;
+}
+@font-face {
+  font-family: "cygre";
+  src: url("/local/templates/intoGroup/assets/fonts/cygre_default/Cygre-Bold.ttf");
+font-weight: 700;
+}
+@font-face {
+  font-family: "cygre";
+  src: url("/local/templates/intoGroup/assets/fonts/cygre_default/Cygre-ExtraBold.ttf");
+font-weight: 800;
+}
+@font-face {
+  font-family: "cygre";
+  src: url("/local/templates/intoGroup/assets/fonts/cygre_default/Cygre-Medium.ttf");
+font-weight: 500;
+}
+@font-face {
+  font-family: "cygre";
+  src: url("/local/templates/intoGroup/assets/fonts/cygre_default/Cygre-SemiBold.ttf");
+font-weight: 600;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+body {
+    font-family: "cygre";
+    font-weight: normal;
+    margin: 0;
+    background-color: #f4f4f9;
+}
+
+input {
+    border: none;
+    border-radius: 20px;
+    height: 30px;
+    padding: 10px 20px;
+}
+
+h2 {
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+}
+
+
+.btn {
+    background-color: #F0EFEF;
+    background: transparent;
+    border: 1px solid #000;
+    border-radius: 10px;
+    padding: 10px 38px;
+    cursor: pointer;
+    font-size: 20px;
+    &_top {
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+    &_top:hover {
+        background: #1E1E1E;
+        color: #F0EFEF;
+    }
+}
+
+
+.calendar-container {
+    background-color: #F0EFEF;
+    box-shadow: 0px 4px 25.8px 0px rgba(0, 0, 0, 0.201);
+    border-radius: 30px 30px 0 30px;
+    font-size: 48px;
+    width: 100%;
+    max-width: 1075px;
+    height: 903px;
+    padding: 23px;
+    .controls {
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 65px;
+    }
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    .day {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: #f4f4f9 0.3s, color 0.3s;
+
+    }
+    .day:hover {
+        border-radius: 20px;
+        background-color: #fff;
+    }
+}
+
+.bold {
+    font-weight: 800;
+}
+
+.view {
+    display: flex;
+    flex-direction: row;
+    gap: 145px;
+    margin-top: 20px;
+    margin-left: 440px;
+    border-radius: 10px;
+    background: #F0EFEF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+.header {
+    grid-column: span 7;
+    display: flex;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.selected {
+    background-color: #D3D07B !important;
+    font-weight: bold;
+    border-radius: 20px;
+}
+
+.form-left {
+    background: rgba(245, 245, 245, 1);
+    box-shadow: 0px 4px 50px 0px rgba(0, 0, 0, 0.25);
+    width: 367px;
+    border-radius: 20px 20px 20px 0px;
+    padding: 9px 25px;
+    z-index: 1;
+    .form-record {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-radius: 5px;
+}
+
+
+.form-label {
+    font-size: 15px;
+}
+
+.form-container {
+    .secondary {
+        background-color: #217aff;
+    }
+}
+
+.budget-wr {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#serviceDetails {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.service-block {
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    padding: 10px;
+}
+
+.service-header {
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    font-weight: bold;
+    background-color: #e6f7ff;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #007bff;
+}
+
+.service-header:hover {
+    background-color: #cce5ff;
+}
+
+.service-content {
+    display: none;
+    padding: 10px;
+    margin-top: 10px;
+    border-top: 1px solid #ccc;
+}
+
+.service-content {
+    span {
+    display: block;
+    margin-bottom: 5px;
+}
+}
+
+#time_end {
+    display: none;
+}

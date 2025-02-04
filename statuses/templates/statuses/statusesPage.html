@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Управление статусами</title>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <style>
+            .boards-container {
+                display: flex;
+                gap: 20px;
+                padding: 20px;
+            }
+            h3 {
+                color: #333;
+                margin: 0 0 10px 0;
+            }
+            .kanban-board {
+                display: flex;
+                gap: 10px;
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .column {
+                width: 200px;
+                min-height: 300px;
+                background: #f4f4f4;
+                padding: 15px;
+                border-radius: 8px;
+                border: 2px solid #ddd;
+            }
+            .column-header {
+                background-color: #dfe6e9;
+                padding: 8px;
+                font-weight: bold;
+                border-radius: 6px;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+            .external-column {
+                background: #e3f2fd;
+                border-color: #bbdefb;
+            }
+            .task {
+                background: white;
+                padding: 10px;
+                margin: 8px 0;
+                border-radius: 6px;
+                cursor: move;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                transition: transform 0.2s;
+            }
+            .task:hover {
+                transform: translateX(2px);
+            }
+            .external-task {
+                background: #bbdefb;
+                border: 1px solid #90caf9;
+            }
+            .settings-container {
+                margin: 30px 15px;
+                padding: 20px;
+                background: #fff;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+            .mapping-list {
+                margin-top: 15px;
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 6px;
+            }
+            .mapping {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: white;
+                padding: 10px;
+                margin: 8px 0;
+                border-radius: 6px;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            .removeMapping {
+                background: #ff4444;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .removeMapping:hover {
+                background: #cc0000;
+            }
+            select {
+                padding: 8px;
+                margin: 0 5px;
+                border-radius: 4px;
+                border: 1px solid #ddd;
+            }
+            button {
+                padding: 8px 15px;
+                background: #007bff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            button:hover {
+                background: #0056b3;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="boards-container">
+            <!-- Колонки внутренних статусов -->
+            <div>
+                <h3>Внутренние статусы</h3>
+                <div class="kanban-board">
+                    <div class="column" id="new">
+                        <div class="column-header">Новая заявка</div>
+                    </div>
+                    <div class="column" id="prebooking">
+                        <div class="column-header">Предварительное бронирование</div>
+                    </div>
+                    <div class="column" id="confirmed">
+                        <div class="column-header">Подтвержденно</div>
+                    </div>
+                    <div class="column" id="done">
+                        <div class="column-header">Состоялось</div>
+                    </div>
+                    <div class="column" id="canceled">
+                        <div class="column-header">Не состоялось</div>
+                    </div>
+                </div>
+            </div>
+
+            <p></p>
+            <!-- Колонка внешних статусов -->
+            <div>
+                <h3>Внешние статусы</h3>
+                <div class="kanban-board">
+                    <div class="column external-column" id="external-statuses">
+                        <!-- Внешние статусы будут добавлены динамически -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            $(function () {
+                const externalStatuses = ["Ожидание", "В обработке", "Подтверждено", "Исполнено", "Отменено", "Архив"];
+
+                // Добавляем внешние статусы из массива
+                externalStatuses.forEach((status) => {
+                    $("#external-statuses").append(`
+                        <div class="task external-task" data-status="${status}">${status}</div>
+                    `);
+                });
+
+                // Инициализация сортировки для внутренних статусов
+                $(".column:not(.external-column)")
+                    .sortable({
+                        connectWith: ".column",
+                        placeholder: "task-placeholder",
+                        items: ".task",
+                        opacity: 0.7,
+                        tolerance: "pointer",
+                        receive: function (event, ui) {
+                            // Если элемент перетащен из внешних статусов
+                            if (ui.item.hasClass("external-task")) {
+                                const status = ui.item.data("status");
+                                ui.item.removeClass("external-task").text(status);
+                            }
+                        },
+                    })
+                    .disableSelection();
+
+                // Инициализация сортировки для внешних статусов
+                $(".external-column")
+                    .sortable({
+                        connectWith: ".column",
+                        items: ".task",
+                        opacity: 0.7,
+                        tolerance: "pointer",
+                        receive: function (event, ui) {
+                            // Если элемент возвращен во внешние статусы
+                            if (!ui.item.hasClass("external-task")) {
+                                const status = ui.item.text();
+                                ui.item.addClass("external-task").text(status);
+                            }
+                        },
+                    })
+                    .disableSelection();
+            });
+        </script>
+    </body>
+</html>

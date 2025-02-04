@@ -1,0 +1,350 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Календарь</title>
+
+        <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+
+        <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    </head>
+    <body>
+        <div class="container">
+            <div class="view">
+                <button class="view__btn btn btn_top">Месяц</button>
+                <button class="view__btn btn btn_top">Неделя</button>
+                <button class="view__btn btn btn_top">День</button>
+            </div>
+        </div>
+        <div class="container">
+            <div class="form-left">
+                <form id="makeNewAppointment" class="form-container">
+                    {% csrf_token %}
+                    <div class="info-container">
+                        <h2>Детали записи</h2>
+                    </div>
+                    <label class="form-label">Филиал*</label>
+                    <input type="text" id="branch" required />
+                    <label class="form-label">Дата*</label>
+                    <input type="text" id="dateView" required />
+                    <label class="form-label">Услуга*</label>
+                    <input type="text" id="service" required />
+                    <label class="form-label">Время*</label>
+                    <input type="time" id="time_start" required />
+                    <input type="time" id="time_end" required />
+                    <label class="form-label">Название зала*</label>
+                    <input type="text" id="name_hall" required />
+                    <label class="form-label">Доп.услуги</label>
+                    <input type="text" id="add_services" />
+
+                    <div id="serviceDetails">
+                        <h2>Ваши данные:</h2>
+                    </div>
+                    <label class="form-label">Имя*</label>
+                    <input type="text" id="client_name" required />
+                    <label class="form-label">Телефон*</label>
+                    <input type="number" id="client_phone" required />
+                    <label class="form-label">Email</label>
+                    <input type="text" id="client_email" />
+
+                    <div class="budget-wr">
+                        <label class="form-label">Итого</label>
+                        <input type="text" id="budget" placeholder="Бюджет" required />
+                    </div>
+                    <p></p>
+
+                    <button type="submit" class="btn">Записаться</button>
+                </form>
+            </div>
+            <div class="calendar-container">
+                <div class="controls">
+                    <button class="btn" id="prev-month">
+                        <svg width="61" height="16" viewBox="0 0 61 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0.708951 7.29289C0.318427 7.68342 0.318427 8.31658 0.708951 8.70711L7.07291 15.0711C7.46344 15.4616 8.0966 15.4616 8.48713 15.0711C8.87765 14.6805 8.87765 14.0474 8.48713 13.6569L2.83027 8L8.48713 2.34315C8.87765 1.95262 8.87765 1.31946 8.48713 0.928932C8.0966 0.538408 7.46344 0.538408 7.07291 0.928932L0.708951 7.29289ZM60.5401 7L1.41606 7V9L60.5401 9V7Z" fill="black" />
+                        </svg>
+                    </button>
+                    <span id="current-month">Январь 2025</span>
+                    <button class="btn" id="next-month">
+                        <svg width="61" height="16" viewBox="0 0 61 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M60.2619 8.70711C60.6524 8.31658 60.6524 7.68342 60.2619 7.29289L53.8979 0.928932C53.5074 0.538408 52.8742 0.538408 52.4837 0.928932C52.0932 1.31946 52.0932 1.95262 52.4837 2.34315L58.1405 8L52.4837 13.6569C52.0932 14.0474 52.0932 14.6805 52.4837 15.0711C52.8742 15.4616 53.5074 15.4616 53.8979 15.0711L60.2619 8.70711ZM0.430664 9L59.5548 9L59.5548 7L0.430664 7L0.430664 9Z" fill="black" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="calendar">
+                    <!-- Дни недели -->
+                    <div class="day bold">Пн</div>
+                    <div class="day bold">Вт</div>
+                    <div class="day bold">Ср</div>
+                    <div class="day bold">Чт</div>
+                    <div class="day bold">Пт</div>
+                    <div class="day bold">Сб</div>
+                    <div class="day bold">Вс</div>
+
+                    <!-- Числа месяца (инициализация JS) -->
+                </div>
+            </div>
+        </div>
+        <script>
+            $("#makeNewAppointment").on("submit", function (event) {
+                event.preventDefault(); // предотвращаем перезагрузку страницы
+                const dateSource = window.selectedDate;
+
+                if (dateSource == "" || dateSource == undefined) {
+                    alert("Выберите дату записи");
+                    return;
+                }
+
+                // Функция для преобразования времени в минуты
+                function timeToMinutes(time) {
+                    const [hours, minutes] = time.split(":").map((num) => parseInt(num, 10)); // Разделяем на часы и минуты
+                    return hours * 60 + minutes; // Преобразуем в минуты с начала суток
+                }
+
+                const formattedString = dateSource.replace(/\+/g, " "); // Заменяем "+" на пробел
+                const months = {
+                    Январь: "January",
+                    Февраль: "February",
+                    Март: "March",
+                    Апрель: "April",
+                    Май: "May",
+                    Июнь: "June",
+                    Июль: "July",
+                    Август: "August",
+                    Сентябрь: "September",
+                    Октябрь: "October",
+                    Ноябрь: "November",
+                    Декабрь: "December",
+                };
+
+                // Переводим название месяца на английский
+                const [day, month, year] = formattedString.split(" ");
+                const englishMonth = months[month];
+
+                //Инфа об услуге
+                const branch = $("#branch").val();
+                const date = new Date(`${englishMonth} ${day}, ${year}`);
+                const service = $("#service").val();
+                const time_start = $("#time_start").val();
+                const time_end = $("#time_end").val();
+                const name_hall = $("#name_hall").val();
+                const add_services = $("#add_services").val();
+
+                //Инфа об клиенте
+                const client_name = $("#client_name").val();
+                const client_phone = $("#client_phone").val();
+                const client_email = $("#client_email").val();
+
+                //Финальная инфа и необходимости
+                const budget = $("#budget").val();
+                const csrftoken = getCookie("csrftoken");
+
+                // Получаем минуты для начального и конечного времени
+                const startMinutes = timeToMinutes(time_start);
+                const endMinutes = timeToMinutes(time_end);
+
+                // Проверяем, что начальное время не позднее конечного
+                if (startMinutes > endMinutes) {
+                    alert("Начальное время не может быть позже конечного");
+                    return;
+                } else if (startMinutes == endMinutes) {
+                    alert("Начальное время записи не может совпадать с финальным временем записи");
+                    return;
+                }
+
+                // Создаем дату
+
+                $.ajax({
+                    url: "{% url 'client_calendar:newAppointment' %}", // URL для обработки формы
+                    type: "POST",
+                    data: {
+                        branch: branch,
+                        date: date,
+                        service: service,
+                        time_start: time_start,
+                        time_end: time_end,
+                        name_hall: name_hall,
+                        add_services: add_services,
+                        client_name: client_name,
+                        client_phone: client_phone,
+                        client_email: client_email,
+                        budget: budget,
+                        csrfmiddlewaretoken: csrftoken, // CSRF токен
+                    },
+                    success: function (response) {
+                        // Если ответ успешный, отобразим календарь
+                        if (response["status"] == "success") {
+                            alert(response["message"]);
+                        }
+                        console.log(response);
+                    },
+                    error: function (response) {
+                        // Если ошибка, отображаем сообщение об ошибке
+                        console.log(response);
+                    },
+                });
+            });
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== "") {
+                    const cookies = document.cookie.split(";");
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === name + "=") {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+            let currentDate = new Date();
+            let currentMonth = currentDate.getMonth(); // Январь будет 0
+            let currentYear = currentDate.getFullYear(); // Текущий год
+
+            function updateCalendar() {
+                const calendar = $(".calendar");
+                calendar.find(".day:not(:lt(7))").remove(); // Удаляем старые числа
+
+                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+                // Вычисляем смещение для первого дня (Пн = 1, Вс = 0 -> Пн = 0, Вс = 6)
+                const offset = firstDay === 0 ? 6 : firstDay - 1;
+
+                // Добавляем пустые клетки для смещения
+                for (let i = 0; i < offset; i++) {
+                    calendar.append('<div class="day"></div>');
+                }
+
+                // Добавляем числа месяца
+                for (let day = 1; day <= daysInMonth; day++) {
+                    calendar.append(`<div class="day" data-day="${day}">${day}</div>`);
+                }
+
+                // Обновляем заголовок месяца
+                $("#current-month").text(`${monthNames[currentMonth]} ${currentYear}`);
+            }
+
+            $(document).ready(function () {
+                updateCalendar();
+
+                $("#prev-month").click(function () {
+                    currentMonth--;
+                    if (currentMonth < 0) {
+                        currentMonth = 11;
+                        currentYear--;
+                    }
+                    updateCalendar();
+                });
+
+                $("#next-month").click(function () {
+                    currentMonth++;
+                    if (currentMonth > 11) {
+                        currentMonth = 0;
+                        currentYear++;
+                    }
+                    updateCalendar();
+                });
+
+                $(document).on("click", ".day[data-day]", function () {
+                    $(".day").removeClass("selected"); // Убираем выделение с других дат
+                    $(this).addClass("selected"); // Добавляем выделение выбранной дате
+                    window.selectedDate = `${$(this).data("day")} ${monthNames[currentMonth]} ${currentYear}`;
+
+                    const formattedString = window.selectedDate.replace(/\+/g, " "); // Заменяем "+" на пробел
+                    const months = {
+                        Январь: "January",
+                        Февраль: "February",
+                        Март: "March",
+                        Апрель: "April",
+                        Май: "May",
+                        Июнь: "June",
+                        Июль: "July",
+                        Август: "August",
+                        Сентябрь: "September",
+                        Октябрь: "October",
+                        Ноябрь: "November",
+                        Декабрь: "December",
+                    };
+
+                    // Переводим название месяца на английский
+                    const [day, month, year] = formattedString.split(" ");
+                    const englishMonth = months[month];
+
+                    // Создаем дату
+                    const date = new Date(`${englishMonth} ${day}, ${year}`);
+                    // Получаем день, месяц и год
+                    const dayOfMonth = date.getDate();
+                    const monthNumber = date.getMonth() + 1; // Месяцы начинаются с 0
+                    const yearShort = date.getFullYear().toString().slice(-2); // Получаем последние две цифры года
+
+                    // Форматируем дату как dd.mm.yy для России
+                    const formattedDate = `${dayOfMonth < 10 ? "0" : ""}${dayOfMonth}.${monthNumber < 10 ? "0" : ""}${monthNumber}.${yearShort}`;
+                    console.log(formattedDate);
+                    $("#dateView").val(formattedDate);
+
+                    const csrftoken = getCookie("csrftoken");
+                    function getCookie(name) {
+                        let cookieValue = null;
+                        if (document.cookie && document.cookie !== "") {
+                            const cookies = document.cookie.split(";");
+                            for (let i = 0; i < cookies.length; i++) {
+                                const cookie = cookies[i].trim();
+                                if (cookie.substring(0, name.length + 1) === name + "=") {
+                                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                    break;
+                                }
+                            }
+                        }
+                        return cookieValue;
+                    }
+
+                    $.ajax({
+                        url: "{% url 'client_calendar:getAppointmentForDay' %}", // URL для обработки формы
+                        type: "POST",
+                        data: {
+                            date: date,
+                            csrfmiddlewaretoken: csrftoken, // CSRF токен
+                        },
+                        success: function (response) {
+                            // Если ответ успешный, отобразим календарь
+
+                            console.log(response);
+                            if (response.appointments) {
+                                let newHTML = "<h2>Занятые слоты</h2>";
+
+                                response.appointments.forEach((element) => {
+                                    newHTML += `
+                            ${element.date} ${element.time_start}-${element.time_end}
+                            <p></p>
+                        `;
+                                });
+                                $(".info-container").html(newHTML);
+                            }
+                        },
+                        error: function (response) {
+                            // Если ошибка, отображаем сообщение об ошибке
+                            console.log(response);
+                        },
+                    });
+                });
+
+                $(".service-header").click(function () {
+                    const content = $(this).next(".service-content");
+                    const toggleBtn = $(this).find(".toggle-btn");
+
+                    content.slideToggle(); // Скрываем/показываем блок
+                    toggleBtn.text(content.is(":visible") ? "-" : "+"); // Меняем знак на кнопке
+                });
+            });
+        </script>
+
+        <script src="{% static 'js/script.js' %}"></script>
+    </body>
+</html>

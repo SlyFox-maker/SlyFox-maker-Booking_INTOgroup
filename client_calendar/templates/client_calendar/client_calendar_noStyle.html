@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Календарь-квадратики</title>
+        <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0;
+                background-color: #f4f4f9;
+            }
+
+            .calendar-container {
+                text-align: center;
+            }
+
+            .controls {
+                margin-bottom: 10px;
+            }
+
+            .calendar {
+                display: grid;
+                grid-template-columns: repeat(7, 50px);
+                gap: 10px;
+            }
+
+            .day {
+                width: 50px;
+                height: 50px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background-color: #ffffff;
+                border: 1px solid #ddd;
+                cursor: pointer;
+                transition: background-color 0.3s, color 0.3s;
+            }
+
+            .day:hover {
+                background-color: #4caf50;
+                color: white;
+            }
+
+            .header {
+                grid-column: span 7;
+                display: flex;
+                justify-content: center;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }
+
+            .selected {
+                background-color: #ff9800 !important;
+                color: white;
+                font-weight: bold;
+            }
+
+            .container {
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                gap: 20px;
+                padding: 20px;
+            }
+
+            .form-container {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 20px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                background-color: #ffffff;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }
+
+            .form-container label {
+                font-weight: bold;
+            }
+
+            .form-container .secondary {
+                background-color: #217aff;
+            }
+
+            #serviceDetails {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }
+
+            .service-block {
+                margin-bottom: 15px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                background-color: #f9f9f9;
+                padding: 10px;
+            }
+
+            .service-header {
+                display: flex;
+                justify-content: space-between;
+                cursor: pointer;
+                font-weight: bold;
+                background-color: #e6f7ff;
+                padding: 8px;
+                border-radius: 5px;
+                border: 1px solid #007bff;
+            }
+
+            .service-header:hover {
+                background-color: #cce5ff;
+            }
+
+            .service-content {
+                display: none;
+                padding: 10px;
+                margin-top: 10px;
+                border-top: 1px solid #ccc;
+            }
+
+            .service-content span {
+                display: block;
+                margin-bottom: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="calendar-container">
+            <div class="controls">
+                <button id="prev-month">Предыдущий</button>
+                <span id="current-month">Январь 2025</span>
+                <button id="next-month">Следующий</button>
+            </div>
+            <div class="calendar">
+                <!-- Дни недели -->
+                <div class="day">Пн</div>
+                <div class="day">Вт</div>
+                <div class="day">Ср</div>
+                <div class="day">Чт</div>
+                <div class="day">Пт</div>
+                <div class="day">Сб</div>
+                <div class="day">Вс</div>
+
+                <!-- Числа месяца (инициализация JS) -->
+            </div>
+            <div class="info-container">
+                <h2>Дополнительная информация</h2>
+            </div>
+
+            <div id="serviceDetails">
+                <h2>Ваши записи:</h2>
+            </div>
+
+            <form id="makeNewAppointment" class="form-container">
+                {% csrf_token %}
+
+                <input type="text" id="name" placeholder="Название" required />
+                <input type="time" id="time_start" required />
+                <input type="time" id="time_end" required />
+                <input type="text" id="budget" placeholder="Бюджет" required />
+                <input type="text" id="name_hall" placeholder="Название зала" required />
+                <input type="text" id="add_services" placeholder="Доп.услуги" required />
+                <p></p>
+
+                <button type="submit">Сохранить</button>
+                <button type="button" class="secondary" id="sendToBitrix">Отправить в Битрикс</button>
+            </form>
+        </div>
+
+        <script>
+            $("#sendToBitrix").on("click", function () {
+                event.preventDefault();
+                const name = $("#name").val();
+                const time_start = $("#time_start").val();
+                const time_end = $("#time_end").val();
+                const budget = $("#budget").val();
+                const name_hall = $("#name_hall").val();
+                const add_services = $("#add_services").val();
+                const dateSource = window.selectedDate;
+                const csrftoken = getCookie("csrftoken");
+
+                if (dateSource == "" || dateSource == undefined) {
+                    alert("Выберите дату записи");
+                    return;
+                }
+
+                // Функция для преобразования времени в минуты
+                function timeToMinutes(time) {
+                    const [hours, minutes] = time.split(":").map((num) => parseInt(num, 10)); // Разделяем на часы и минуты
+                    return hours * 60 + minutes; // Преобразуем в минуты с начала суток
+                }
+
+                // Получаем минуты для начального и конечного времени
+                const startMinutes = timeToMinutes(time_start);
+                const endMinutes = timeToMinutes(time_end);
+
+                // Проверяем, что начальное время не позднее конечного
+                if (startMinutes > endMinutes) {
+                    alert("Начальное время не может быть позже конечного");
+                    return;
+                } else if (startMinutes == endMinutes) {
+                    alert("Начальное время записи не может совпадать с финальным временем записи");
+                    return;
+                }
+
+                const formattedString = dateSource.replace(/\+/g, " "); // Заменяем "+" на пробел
+                const months = {
+                    Январь: "January",
+                    Февраль: "February",
+                    Март: "March",
+                    Апрель: "April",
+                    Май: "May",
+                    Июнь: "June",
+                    Июль: "July",
+                    Август: "August",
+                    Сентябрь: "September",
+                    Октябрь: "October",
+                    Ноябрь: "November",
+                    Декабрь: "December",
+                };
+
+                // Переводим название месяца на английский
+                const [day, month, year] = formattedString.split(" ");
+                const englishMonth = months[month];
+
+                // Создаем дату
+                const date = new Date(`${englishMonth} ${day}, ${year}`);
+
+                $.ajax({
+                    url: "{% url 'client_calendar:addAppointmentToBitrix' %}", // URL для обработки формы
+                    type: "POST",
+                    data: {
+                        name: name,
+                        date: date,
+                        time_start: time_start,
+                        time_end: time_end,
+                        budget: budget,
+                        name_hall: name_hall,
+                        add_services: add_services,
+                        client_id: window.client_id,
+                        csrfmiddlewaretoken: csrftoken, // CSRF токен
+                    },
+                    success: function (response) {
+                        // Если ответ успешный, отобразим календарь
+
+                        console.log(response);
+                        alert(response.message);
+                    },
+                    error: function (response) {
+                        // Если ошибка, отображаем сообщение об ошибке
+                        console.log(response);
+                    },
+                });
+            });
+            $("#makeNewAppointment").on("submit", function (event) {
+                event.preventDefault(); // предотвращаем перезагрузку страницы
+
+                const name = $("#name").val();
+                const time_start = $("#time_start").val();
+                const time_end = $("#time_end").val();
+                const budget = $("#budget").val();
+                const name_hall = $("#name_hall").val();
+                const add_services = $("#add_services").val();
+                const dateSource = window.selectedDate;
+                const csrftoken = getCookie("csrftoken");
+
+                if (dateSource == "" || dateSource == undefined) {
+                    alert("Выберите дату записи");
+                    return;
+                }
+
+                // Функция для преобразования времени в минуты
+                function timeToMinutes(time) {
+                    const [hours, minutes] = time.split(":").map((num) => parseInt(num, 10)); // Разделяем на часы и минуты
+                    return hours * 60 + minutes; // Преобразуем в минуты с начала суток
+                }
+
+                // Получаем минуты для начального и конечного времени
+                const startMinutes = timeToMinutes(time_start);
+                const endMinutes = timeToMinutes(time_end);
+
+                // Проверяем, что начальное время не позднее конечного
+                if (startMinutes > endMinutes) {
+                    alert("Начальное время не может быть позже конечного");
+                    return;
+                } else if (startMinutes == endMinutes) {
+                    alert("Начальное время записи не может совпадать с финальным временем записи");
+                    return;
+                }
+
+                const formattedString = dateSource.replace(/\+/g, " "); // Заменяем "+" на пробел
+                const months = {
+                    Январь: "January",
+                    Февраль: "February",
+                    Март: "March",
+                    Апрель: "April",
+                    Май: "May",
+                    Июнь: "June",
+                    Июль: "July",
+                    Август: "August",
+                    Сентябрь: "September",
+                    Октябрь: "October",
+                    Ноябрь: "November",
+                    Декабрь: "December",
+                };
+
+                // Переводим название месяца на английский
+                const [day, month, year] = formattedString.split(" ");
+                const englishMonth = months[month];
+
+                // Создаем дату
+                const date = new Date(`${englishMonth} ${day}, ${year}`);
+
+                $.ajax({
+                    url: "{% url 'client_calendar:newAppointment' %}", // URL для обработки формы
+                    type: "POST",
+                    data: {
+                        name: name,
+                        date: date,
+                        time_start: time_start,
+                        time_end: time_end,
+                        budget: budget,
+                        name_hall: name_hall,
+                        add_services: add_services,
+                        client_id: window.client_id,
+                        csrfmiddlewaretoken: csrftoken, // CSRF токен
+                    },
+                    success: function (response) {
+                        // Если ответ успешный, отобразим календарь
+
+                        console.log(response);
+                    },
+                    error: function (response) {
+                        // Если ошибка, отображаем сообщение об ошибке
+                        console.log(response);
+                    },
+                });
+            });
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== "") {
+                    const cookies = document.cookie.split(";");
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === name + "=") {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+        </script>
+
+        <script>
+            const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+            let currentMonth = 0; // Январь
+            let currentYear = 2025;
+
+            function updateCalendar() {
+                const calendar = $(".calendar");
+                calendar.find(".day:not(:lt(7))").remove(); // Удаляем старые числа
+
+                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+                // Вычисляем смещение для первого дня (Пн = 1, Вс = 0 -> Пн = 0, Вс = 6)
+                const offset = firstDay === 0 ? 6 : firstDay - 1;
+
+                // Добавляем пустые клетки для смещения
+                for (let i = 0; i < offset; i++) {
+                    calendar.append('<div class="day"></div>');
+                }
+
+                // Добавляем числа месяца
+                for (let day = 1; day <= daysInMonth; day++) {
+                    calendar.append(`<div class="day" data-day="${day}">${day}</div>`);
+                }
+
+                // Обновляем заголовок месяца
+                $("#current-month").text(`${monthNames[currentMonth]} ${currentYear}`);
+            }
+
+            $(document).ready(function () {
+                updateCalendar();
+
+                $("#prev-month").click(function () {
+                    currentMonth--;
+                    if (currentMonth < 0) {
+                        currentMonth = 11;
+                        currentYear--;
+                    }
+                    updateCalendar();
+                });
+
+                $("#next-month").click(function () {
+                    currentMonth++;
+                    if (currentMonth > 11) {
+                        currentMonth = 0;
+                        currentYear++;
+                    }
+                    updateCalendar();
+                });
+
+                $(document).on("click", ".day[data-day]", function () {
+                    $(".day").removeClass("selected"); // Убираем выделение с других дат
+                    $(this).addClass("selected"); // Добавляем выделение выбранной дате
+                    window.selectedDate = `${$(this).data("day")} ${monthNames[currentMonth]} ${currentYear}`;
+
+                    const formattedString = window.selectedDate.replace(/\+/g, " "); // Заменяем "+" на пробел
+                    const months = {
+                        Январь: "January",
+                        Февраль: "February",
+                        Март: "March",
+                        Апрель: "April",
+                        Май: "May",
+                        Июнь: "June",
+                        Июль: "July",
+                        Август: "August",
+                        Сентябрь: "September",
+                        Октябрь: "October",
+                        Ноябрь: "November",
+                        Декабрь: "December",
+                    };
+
+                    // Переводим название месяца на английский
+                    const [day, month, year] = formattedString.split(" ");
+                    const englishMonth = months[month];
+
+                    // Создаем дату
+                    const date = new Date(`${englishMonth} ${day}, ${year}`);
+
+                    const csrftoken = getCookie("csrftoken");
+                    function getCookie(name) {
+                        let cookieValue = null;
+                        if (document.cookie && document.cookie !== "") {
+                            const cookies = document.cookie.split(";");
+                            for (let i = 0; i < cookies.length; i++) {
+                                const cookie = cookies[i].trim();
+                                if (cookie.substring(0, name.length + 1) === name + "=") {
+                                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                    break;
+                                }
+                            }
+                        }
+                        return cookieValue;
+                    }
+
+                    $.ajax({
+                        url: "{% url 'client_calendar:getAppointmentForDay' %}", // URL для обработки формы
+                        type: "POST",
+                        data: {
+                            date: date,
+                            csrfmiddlewaretoken: csrftoken, // CSRF токен
+                        },
+                        success: function (response) {
+                            // Если ответ успешный, отобразим календарь
+
+                            console.log(response);
+                            if (response.appointments) {
+                                let newHTML = "<h2>Занятые слоты</h2>";
+
+                                response.appointments.forEach((element) => {
+                                    newHTML += `
+                                        ${element.date} ${element.time_start}-${element.time_end}
+                                        <p></p>
+                                    `;
+                                });
+                                $(".info-container").html(newHTML);
+                            }
+                        },
+                        error: function (response) {
+                            // Если ошибка, отображаем сообщение об ошибке
+                            console.log(response);
+                        },
+                    });
+                });
+
+                $(".service-header").click(function () {
+                    const content = $(this).next(".service-content");
+                    const toggleBtn = $(this).find(".toggle-btn");
+
+                    content.slideToggle(); // Скрываем/показываем блок
+                    toggleBtn.text(content.is(":visible") ? "-" : "+"); // Меняем знак на кнопке
+                });
+            });
+        </script>
+    </body>
+</html>
